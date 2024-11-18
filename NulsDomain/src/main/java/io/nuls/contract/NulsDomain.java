@@ -145,7 +145,7 @@ public class NulsDomain extends Ownable implements Contract {
         NRC721 nrc721 = new NRC721(token721);
         require(nrc721.ownerOf(tokenId).equals(Msg.sender()), "NRC721: token that is not own");
         UserInfo userInfo = userDomains.get(Msg.sender());
-        userInfo.setMainDomains(domain);
+        userInfo.setMainDomain(domain);
         treasuryManager.getTreasury().transfer(Msg.value());
     }
 
@@ -191,8 +191,17 @@ public class NulsDomain extends Ownable implements Contract {
 
     public void domainTransfer(Address from, Address to, BigInteger tokenId) {
         onlyDomain721();
-        updatePool();
         UserInfo userFrom = userDomains.get(from);
+        String domain = domains.get(tokenId);
+        require(domain != null, "Domain Get: error tokenId");
+        Boolean award = domainAwards.get(domain);
+        boolean active = award != null && award;
+        if (active) {
+            require(userFrom.existActive(domain), "Domain Active Check: error domain");
+        } else {
+            require(userFrom.existInactive(domain), "Domain Inactive Check: error domain");
+        }
+        updatePool();
         UserInfo userTo = userDomains.get(to);
         if (userTo == null) {
             userTo = new UserInfo();
@@ -200,9 +209,8 @@ public class NulsDomain extends Ownable implements Contract {
         }
         _receive(from, userFrom);
         _receive(to, userTo);
-        String domain = domains.get(tokenId);
-        Boolean award = domainAwards.get(domain);
-        if (award == null || !award) {
+
+        if (!active) {
             userTo.addInactiveDomains(domain);
             userFrom.removeInactiveDomains(domain);
         } else {

@@ -32,7 +32,7 @@ import java.util.Set;
  * @date: 2024/11/14
  */
 public class UserInfo {
-    private String mainDomains;
+    private String mainDomain;
     private final Set<String> activeDomains;
     private final Set<String> inactiveDomains;
     private BigInteger pending;
@@ -45,12 +45,20 @@ public class UserInfo {
         this.rewardDebt = BigInteger.ZERO;
     }
 
-    public String getMainDomains() {
-        return mainDomains;
+    public boolean existActive(String domain) {
+        return activeDomains.contains(domain);
     }
 
-    public void setMainDomains(String mainDomains) {
-        this.mainDomains = mainDomains;
+    public boolean existInactive(String domain) {
+        return inactiveDomains.contains(domain);
+    }
+
+    public String getMainDomain() {
+        return mainDomain;
+    }
+
+    public void setMainDomain(String mainDomain) {
+        this.mainDomain = mainDomain;
     }
 
     public int getActiveDomainsSize() {
@@ -58,30 +66,30 @@ public class UserInfo {
     }
 
     public void addActiveDomains(String domain) {
-        if (mainDomains == null) {
-            mainDomains = domain;
+        if (mainDomain == null) {
+            mainDomain = domain;
         }
         this.activeDomains.add(domain);
     }
 
     public void removeActiveDomains(String domain) {
         this.activeDomains.remove(domain);
-        if (mainDomains.equals(domain)) {
-            mainDomains = null;
+        if (mainDomain.equals(domain)) {
+            mainDomain = null;
         }
     }
 
     public void addInactiveDomains(String domain) {
-        if (mainDomains == null) {
-            mainDomains = domain;
+        if (mainDomain == null) {
+            mainDomain = domain;
         }
         this.inactiveDomains.add(domain);
     }
 
     public void removeInactiveDomains(String domain) {
         this.inactiveDomains.remove(domain);
-        if (mainDomains.equals(domain)) {
-            mainDomains = null;
+        if (mainDomain.equals(domain)) {
+            mainDomain = null;
         }
     }
 
