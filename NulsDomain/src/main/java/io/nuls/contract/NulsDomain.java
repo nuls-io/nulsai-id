@@ -26,6 +26,8 @@ package io.nuls.contract;
 import io.nuls.contract.entity.NRC721;
 import io.nuls.contract.entity.Staking;
 import io.nuls.contract.event.ChangeDomainPrice;
+import io.nuls.contract.event.UserActiveAward;
+import io.nuls.contract.event.UserPendingAward;
 import io.nuls.contract.manager.TreasuryManager;
 import io.nuls.contract.model.NextId;
 import io.nuls.contract.model.UserInfo;
@@ -323,7 +325,7 @@ public class NulsDomain extends Ownable implements Contract {
         pending = pending.add(userInfo.getPending());
         if (pending.compareTo(treasuryManager.MININUM_TRANSFER_AMOUNT) < 0) {
             userInfo.setPending(pending);
-            //TODO pierre 事件
+            emit(new UserPendingAward(user.toString(), pending));
             return BigInteger.ZERO;
         }
         userInfo.setPending(BigInteger.ZERO);
@@ -349,7 +351,7 @@ public class NulsDomain extends Ownable implements Contract {
         userInfo.setRewardDebt(BigInteger.valueOf(userInfo.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
         domainAwards.put(domain, true);
         treasuryManager.add(userPay);
-        //TODO pierre 事件
+        emit(new UserActiveAward(user.toString(), userPay, domain, newId));
     }
 
     private boolean _mintWithTokenURI(Address to, String domain, String tokenURI, boolean reward) {
