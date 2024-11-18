@@ -287,6 +287,7 @@ public class NulsDomain extends Ownable implements Contract {
     }
 
     private void addSuffixInfo(String suffix, Address _721, BigInteger startId) {
+        require(!domainSuffixFor721Map.containsKey(suffix), "Add Suffix: already exist");
         domainSuffixFor721Map.put(suffix, _721);
         token721ForSuffixMap.put(_721, suffix);
         domainNextIds.put(suffix, new NextId(startId));
