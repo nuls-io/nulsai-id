@@ -8,10 +8,10 @@ import io.nuls.contract.pocm.model.ConsensusAgentDepositInfo;
 import io.nuls.contract.pocm.model.CurrentMingInfo;
 import io.nuls.contract.pocm.model.UserInfo;
 import io.nuls.contract.pocm.ownership.Ownable;
-import io.nuls.contract.pocm.util.NRC20Wrapper;
 import io.nuls.contract.pocm.util.PocmUtil;
 import io.nuls.contract.sdk.*;
 import io.nuls.contract.sdk.annotation.*;
+import io.nuls.contract.sdk.token.NRC20Wrapper;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -36,24 +36,24 @@ public class NulsDomainStaking extends Ownable implements Contract {
     private boolean isAcceptStaking = false;//是否接受质押
     private Map<String, ConsensusAgentDepositInfo> agentDeposits = new HashMap<String, ConsensusAgentDepositInfo>();
     private boolean initialized = false;
+    private Address candyTokenCopy;
 
     public NulsDomainStaking() {
+        if (Msg.sender().toString().startsWith("NULS")) {
+            candyTokenCopy = new Address("NULSd6Hgv3Y49CHapt5qL4pCiEX8x3ZHrh6ie");
+        } else {
+            candyTokenCopy = new Address("tNULSeBaMwGu9Xt8YLBiCaemgHciekfh1ScfkD");
+        }
     }
 
     /**
      *
      * @param official                          管理者
      * @param awardReceiver                     节点共识奖励接收者
-     * @param candyToken                        糖果token地址（NRC20资产）
-     * @param candyPerBlock                     每个区块奖励的Token数量
-     * @param candySupply                       糖果token分配总量
      */
     public void initialize(
                         Address official,
-                        Address awardReceiver,
-                        Address candyToken,
-                        BigInteger candyPerBlock,
-                        BigInteger candySupply) {
+                        Address awardReceiver) {
         onlyOwner();
         if (initialized) {
             revert("PocmInitialized");
@@ -61,19 +61,18 @@ public class NulsDomainStaking extends Ownable implements Contract {
         initialized = true;
         super.setOfficial(official.toString());
         super.setAwardReceiver(awardReceiver);
+        String candyTokenAddress = deploy(new String[]{Msg.address().toString(), "i" + Block.timestamp()}, candyTokenCopy, new String[]{"domainStaking", "DOMAIN", "1000010000000", "18"});
+        Address candyToken = new Address(candyTokenAddress);
         // 糖果资产检查
-        require(candyToken != null, "initial: candyToken not good");
-        require(candyToken.isContract(), "initial: candyToken not good");
         pi.isNRC20Candy = true;
         pi.candyTokenWrapper = new NRC20Wrapper(candyToken);
-        require(candyPerBlock.compareTo(BigInteger.ZERO) > 0, "initial: candyPerBlock not good");
-        require(candySupply.compareTo(BigInteger.ZERO) > 0, "initial: candySupply not good");
+        pi.candyTokenWrapper.transfer(Msg.sender(), BigInteger.TEN.pow(18).multiply(BigInteger.valueOf(10000000)));
 
         pi.candyToken = candyToken;
         pi.candyAssetChainId = 0;
         pi.candyAssetId = 0;
-        pi.candyPerBlock = candyPerBlock;
-        pi.candySupply = candySupply;
+        pi.candyPerBlock = BigInteger.TEN.pow(16);
+        pi.candySupply = BigInteger.TEN.pow(18).multiply(BigInteger.valueOf(1000000000000L));
         pi.lockedTokenDay = 0;
         pi.minimumStaking = MININUM_TRANSFER_AMOUNT;
         pi.maximumStaking = ONE_NULS.multiply(TEN_THOUSAND).multiply(TEN_THOUSAND);
@@ -91,7 +90,7 @@ public class NulsDomainStaking extends Ownable implements Contract {
         emit(new PocmCreateContract17Event(
                 candyToken.toString(),
                 0, 0,
-                candyPerBlock, candySupply,
+                pi.candyPerBlock, pi.candySupply,
                 0,
                 pi.minimumStaking,
                 pi.maximumStaking,

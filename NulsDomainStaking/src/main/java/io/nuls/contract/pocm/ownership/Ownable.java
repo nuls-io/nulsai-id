@@ -1,15 +1,15 @@
 package io.nuls.contract.pocm.ownership;
 
 import io.nuls.contract.pocm.manager.PocmInfo;
-import io.nuls.contract.pocm.util.AssetWrapper;
-import io.nuls.contract.pocm.util.CandyToken;
-import io.nuls.contract.pocm.util.NRC20Wrapper;
 import io.nuls.contract.sdk.Address;
 import io.nuls.contract.sdk.Event;
 import io.nuls.contract.sdk.Msg;
 import io.nuls.contract.sdk.annotation.Payable;
 import io.nuls.contract.sdk.annotation.Required;
 import io.nuls.contract.sdk.annotation.View;
+import io.nuls.contract.sdk.token.AssetWrapper;
+import io.nuls.contract.sdk.token.NRC20Wrapper;
+import io.nuls.contract.sdk.token.Token;
 
 import java.math.BigInteger;
 
@@ -128,7 +128,7 @@ public class Ownable {
 
     public void transferOtherAsset(int assetChainId, int assetId, Address to, BigInteger value) {
         onlyOfficial();
-        CandyToken wrapper = new AssetWrapper(assetChainId, assetId);
+        Token wrapper = new AssetWrapper(assetChainId, assetId);
         BigInteger balance = wrapper.balanceOf(Msg.address());
         require(balance.compareTo(value) >= 0, "No enough balance");
         wrapper.transfer(to, value);
@@ -136,7 +136,7 @@ public class Ownable {
 
     public void transferProjectCandyAsset(Address to, BigInteger value) {
         onlyOfficial();
-        CandyToken wrapper;
+        Token wrapper;
         if (pi.candyAssetChainId + pi.candyAssetId == 0) {
             wrapper = new NRC20Wrapper(pi.candyToken);
         } else {

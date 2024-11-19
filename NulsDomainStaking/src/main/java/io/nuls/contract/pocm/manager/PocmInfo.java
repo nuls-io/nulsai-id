@@ -23,10 +23,10 @@
  */
 package io.nuls.contract.pocm.manager;
 
-import io.nuls.contract.pocm.util.CandyToken;
 import io.nuls.contract.sdk.Address;
 import io.nuls.contract.sdk.Block;
 import io.nuls.contract.sdk.Msg;
+import io.nuls.contract.sdk.token.Token;
 
 import java.math.BigInteger;
 
@@ -40,7 +40,7 @@ public class PocmInfo {
     public final long TIMEPERDAY = 86400;
     public BigInteger _2000_NULS = BigInteger.valueOf(200000000000L);
     public final BigInteger _1e12 = BigInteger.TEN.pow(12);
-    public CandyToken candyTokenWrapper;
+    public Token candyTokenWrapper;
     public Address candyToken; // Address of candy token contract.
     public int candyAssetChainId;// chainId of candy token contract.
     public int candyAssetId;// assetId of candy token contract.
