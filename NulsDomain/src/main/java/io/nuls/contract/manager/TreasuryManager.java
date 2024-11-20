@@ -89,7 +89,6 @@ public class TreasuryManager {
             staking.depositForOwn(total);
             stakingAmount = stakingAmount.add(total);
         }
-        staking.transferConsensusRewardByOwner();
     }
 
     /*public void subtract(BigInteger value) {

@@ -22,7 +22,7 @@ public class Ownable {
     protected Address contractCreator;
 
     protected Address owner;
-    private Map<Address, Boolean> minters = new HashMap<Address, Boolean>();
+    protected Map<Address, Boolean> minters = new HashMap<Address, Boolean>();
 
     public Ownable() {
         this.owner = Msg.sender();

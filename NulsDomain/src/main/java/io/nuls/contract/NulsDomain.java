@@ -39,6 +39,7 @@ import io.nuls.contract.sdk.annotation.JSONSerializable;
 import io.nuls.contract.sdk.annotation.Payable;
 import io.nuls.contract.sdk.annotation.Required;
 import io.nuls.contract.sdk.annotation.View;
+import io.nuls.contract.utils.ReentrancyGuard;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -50,7 +51,7 @@ import static io.nuls.contract.sdk.Utils.*;
  * @author: PierreLuo
  * @date: 2019-06-10
  */
-public class NulsDomain extends Ownable implements Contract {
+public class NulsDomain extends ReentrancyGuard implements Contract {
 
     private final Map<BigInteger, String> domains = new HashMap<BigInteger, String>();
     private final Map<String, BigInteger> domainIndexes = new HashMap<String, BigInteger>();
@@ -73,10 +74,13 @@ public class NulsDomain extends Ownable implements Contract {
 
     public NulsDomain() {
         this.treasuryManager = new TreasuryManager();
-        domainPrice.put(2, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(1000)));
-        domainPrice.put(3, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(500)));
-        domainPrice.put(4, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(100)));
-        this.DEFAULT_PRICE = treasuryManager.ONE_NULS;
+        domainPrice.put(1, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(10000)));
+        domainPrice.put(2, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(5000)));
+        domainPrice.put(3, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(3000)));
+        domainPrice.put(4, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(1000)));
+        domainPrice.put(5, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(500)));
+        domainPrice.put(6, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(200)));
+        this.DEFAULT_PRICE = treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(100));
     }
 
     public void initialize(
@@ -118,16 +122,23 @@ public class NulsDomain extends Ownable implements Contract {
 
     @Payable
     public boolean mint(@Required String domain) {
-        return this._mintWithTokenURI(Msg.sender(), domain, null, true);
+        _nonReentrantBefore();
+        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, null, true);
+        _nonReentrantAfter();
+        return bool;
     }
 
     @Payable
     public boolean mintWithTokenURI(@Required String domain, @Required String tokenURI) {
-        return this._mintWithTokenURI(Msg.sender(), domain, tokenURI, true);
+        _nonReentrantBefore();
+        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, tokenURI, true);
+        _nonReentrantAfter();
+        return bool;
     }
 
     @Payable
     public void activeAward(String domain) {
+        _nonReentrantBefore();
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
         Boolean award = domainAwards.get(domain);
@@ -135,11 +146,22 @@ public class NulsDomain extends Ownable implements Contract {
         Address token721 = this.get721ById(tokenId);
         NRC721 nrc721 = new NRC721(token721);
         require(nrc721.ownerOf(tokenId).equals(Msg.sender()), "NRC721: token that is not own");
-        this._activeAward(Msg.sender(), Msg.value(), domain, false);
+        String[] split = domain.split("\\.");
+        String suffix = split[split.length - 1];
+        /*String prefix = "";
+        for (int i = 0, length = split.length - 1; i < length; i ++) {
+            prefix += split[i];
+            if (i != length - 1) {
+                prefix += ".";
+            }
+        }*/
+        this._activeAward(Msg.sender(), Msg.value(), suffix, domain, false);
+        _nonReentrantAfter();
     }
 
     @Payable
     public void changeMainDomain(String domain) {
+        _nonReentrantBefore();
         require(Msg.value().compareTo(treasuryManager.ONE_NULS.multiply(BigInteger.TEN)) >= 0, "10 NULS cost");
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
@@ -149,6 +171,7 @@ public class NulsDomain extends Ownable implements Contract {
         UserInfo userInfo = userDomains.get(Msg.sender());
         userInfo.setMainDomain(domain);
         treasuryManager.getTreasury().transfer(Msg.value());
+        _nonReentrantAfter();
     }
 
     public void receiveAward() {
@@ -228,6 +251,17 @@ public class NulsDomain extends Ownable implements Contract {
         BigInteger price = domainPrice.get(length);
         return price != null ? price.toString() : "0";
     }
+
+    @View
+    public String getPriceByDomain(String domain) {
+        String[] split = domain.split("\\.");
+        String suffix = split[split.length - 1];
+        Address token721 = domainSuffixFor721Map.get(suffix);
+        require(token721 != null, "check 721: error domain");
+        BigInteger price = this.getPrice(suffix, domain);
+        return price.toString();
+    }
+
     @View
     public String getStakingAddress() {
         return treasuryManager.getStaking().toString();
@@ -334,8 +368,8 @@ public class NulsDomain extends Ownable implements Contract {
         return pending;
     }
 
-    private void _activeAward(Address user, BigInteger userPay, String domain, boolean newId) {
-        BigInteger price = this.getPrice(domain);
+    private void _activeAward(Address user, BigInteger userPay, String suffix, String domain, boolean newId) {
+        BigInteger price = this.getPrice(suffix, domain);
         require(userPay.compareTo(price) >= 0, "Insufficient payment");
         UserInfo userInfo = userDomains.get(user);
         if (userInfo == null) {
@@ -369,7 +403,14 @@ public class NulsDomain extends Ownable implements Contract {
             userDomains.put(to, userInfo);
         }
         if (reward) {
-            this._activeAward(to, Msg.value(), domain, true);
+            /*String prefix = "";
+            for (int i = 0, length = split.length - 1; i < length; i ++) {
+                prefix += split[i];
+                if (i != length - 1) {
+                    prefix += ".";
+                }
+            }*/
+            this._activeAward(to, Msg.value(), suffix, domain, true);
         } else {
             userInfo.addInactiveDomains(domain);
         }
@@ -381,9 +422,11 @@ public class NulsDomain extends Ownable implements Contract {
         return true;
     }
 
-    private BigInteger getPrice(String domain) {
-        require(domain != null && domain.length() > 1, "Error domain length");
-        BigInteger price = domainPrice.get(domain.length());
+    private BigInteger getPrice(String suffix, String domain) {
+        require(domain != null && suffix != null, "Error domain");
+        int prefixLength = domain.length() - (suffix.length() + 1);
+        require(prefixLength > 0, "Error domain length");
+        BigInteger price = domainPrice.get(prefixLength);
         if (price == null) {
             price = DEFAULT_PRICE;
         }
