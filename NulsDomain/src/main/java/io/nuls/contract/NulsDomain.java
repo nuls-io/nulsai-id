@@ -33,6 +33,7 @@ import io.nuls.contract.model.NextId;
 import io.nuls.contract.model.UserInfo;
 import io.nuls.contract.role.Ownable;
 import io.nuls.contract.sdk.Address;
+import io.nuls.contract.sdk.Block;
 import io.nuls.contract.sdk.Contract;
 import io.nuls.contract.sdk.Msg;
 import io.nuls.contract.sdk.annotation.JSONSerializable;
@@ -41,6 +42,7 @@ import io.nuls.contract.sdk.annotation.Required;
 import io.nuls.contract.sdk.annotation.View;
 import io.nuls.contract.utils.ReentrancyGuard;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -175,12 +177,14 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     public void receiveAward() {
+        _nonReentrantBefore();
         Address user = Msg.sender();
         UserInfo userInfo = userDomains.get(user);
         require(userInfo != null && userInfo.getActiveDomainsSize() > 0, "No domains");
         updatePool();
         _receive(user, userInfo);
         userInfo.setRewardDebt(BigInteger.valueOf(userInfo.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
+        _nonReentrantAfter();
     }
 
     /*public void burn(@Required Address owner, @Required BigInteger tokenId) {
@@ -336,6 +340,34 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         return token721;
     }
 
+    @View
+    public String pendingToken(Address user) {
+        UserInfo userInfo = userDomains.get(user);
+        require(userInfo != null && userInfo.getActiveDomainsSize() > 0, "No domains");
+        Staking staking = new Staking(treasuryManager.getStaking());
+        BigInteger totalAward = staking.ownerTotalConsensusAward();
+        BigInteger award = totalAward.subtract(lastAward);
+        accPerShare = accPerShare.add(award.multiply(_1e12).divide(rewardCount));
+        BigInteger pending = BigInteger.valueOf(userInfo.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12).subtract(userInfo.getRewardDebt());
+        pending = pending.add(userInfo.getPending());
+        return pending.toString();
+    }
+
+    @View
+    public String getPendingStakingAmount() {
+        return treasuryManager.getAvailable().toString();
+    }
+
+    @View
+    public String getStakingAmount() {
+        return treasuryManager.getStakingAmount().toString();
+    }
+
+    @View
+    public String getWholeStakingAmount() {
+        return treasuryManager.getTotal().toString();
+    }
+
     private void updatePool() {
         Staking staking = new Staking(treasuryManager.getStaking());
         BigInteger totalAward = staking.ownerTotalConsensusAward();
@@ -358,6 +390,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         }
         BigInteger pending = BigInteger.valueOf(count).multiply(accPerShare).divide(_1e12).subtract(userInfo.getRewardDebt());
         pending = pending.add(userInfo.getPending());
+        if (pending.compareTo(BigInteger.ZERO) == 0) {
+            return BigInteger.ZERO;
+        }
         if (pending.compareTo(treasuryManager.MININUM_TRANSFER_AMOUNT) < 0) {
             userInfo.setPending(pending);
             emit(new UserPendingAward(user.toString(), pending));
@@ -368,9 +403,17 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         return pending;
     }
 
+    private BigInteger extractDecimal(BigInteger na) {
+        return na.subtract(new BigDecimal(na).movePointLeft(8).toBigInteger().multiply(treasuryManager.ONE_NULS));
+    }
+
     private void _activeAward(Address user, BigInteger userPay, String suffix, String domain, boolean newId) {
         BigInteger price = this.getPrice(suffix, domain);
         require(userPay.compareTo(price) >= 0, "Insufficient payment");
+        BigInteger decimalValue = this.extractDecimal(userPay);
+        boolean hasDecimal = decimalValue.compareTo(BigInteger.ZERO) > 0;
+        require(!hasDecimal, "Domain mint: payment not good, floating point numbers are not allowed");
+
         UserInfo userInfo = userDomains.get(user);
         if (userInfo == null) {
             userInfo = new UserInfo();

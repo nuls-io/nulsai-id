@@ -42,13 +42,13 @@ public class TreasuryManager {
     public BigInteger MININUM_TRANSFER_AMOUNT = BigInteger.TEN.pow(6);
 
     // 总抵押金额
-    private BigInteger total;
+    private BigInteger available;
     private BigInteger stakingAmount;
     private Address staking;
     private Address treasury;
 
     public TreasuryManager() {
-        this.total = ZERO;
+        this.available = ZERO;
         this.stakingAmount = ZERO;
     }
 
@@ -69,13 +69,14 @@ public class TreasuryManager {
     }
 
     public BigInteger getTotal() {
-        BigInteger total = this.total;
-        return total;
+        return this.available.add(this.stakingAmount);
+    }
+    public BigInteger getAvailable() {
+        return this.available;
     }
 
     public BigInteger getStakingAmount() {
-        BigInteger stakingAmount = this.stakingAmount;
-        return stakingAmount;
+        return this.stakingAmount;
     }
 
     public void add(BigInteger value) {
@@ -84,10 +85,11 @@ public class TreasuryManager {
         this.treasury.transfer(fee);
 
         Staking staking = new Staking(this.staking);
-        this.total = this.total.add(value);
-        if (total.compareTo(_2000_NULS) >= 0) {
-            staking.depositForOwn(total);
-            stakingAmount = stakingAmount.add(total);
+        this.available = this.available.add(value);
+        if (available.compareTo(_2000_NULS) >= 0) {
+            staking.depositForOwn(available);
+            stakingAmount = stakingAmount.add(available);
+            available = ZERO;
         }
     }
 
