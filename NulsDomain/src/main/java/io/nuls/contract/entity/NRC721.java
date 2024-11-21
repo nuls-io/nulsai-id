@@ -69,6 +69,16 @@ public class NRC721 {
         return null;
     }
 
+    public String tokenURI(BigInteger tokenId) {
+        String[][] args = new String[1][];
+        args[0] = new String[]{tokenId.toString()};
+        String result = contract.callWithReturnValue("tokenURI", "", args, BigInteger.ZERO);
+        if (result != null && result.length() > 0) {
+            return result;
+        }
+        return null;
+    }
+
     public String name() {
         String result = contract.callWithReturnValue("name", "", null, BigInteger.ZERO);
         if (result != null && result.length() > 0) {

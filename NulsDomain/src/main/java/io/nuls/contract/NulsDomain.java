@@ -25,15 +25,11 @@ package io.nuls.contract;
 
 import io.nuls.contract.entity.NRC721;
 import io.nuls.contract.entity.Staking;
-import io.nuls.contract.event.ChangeDomainPrice;
-import io.nuls.contract.event.UserActiveAward;
-import io.nuls.contract.event.UserPendingAward;
+import io.nuls.contract.event.*;
 import io.nuls.contract.manager.TreasuryManager;
 import io.nuls.contract.model.NextId;
 import io.nuls.contract.model.UserInfo;
-import io.nuls.contract.role.Ownable;
 import io.nuls.contract.sdk.Address;
-import io.nuls.contract.sdk.Block;
 import io.nuls.contract.sdk.Contract;
 import io.nuls.contract.sdk.Msg;
 import io.nuls.contract.sdk.annotation.JSONSerializable;
@@ -65,7 +61,8 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     private final Map<Address, String> token721ForSuffixMap = new HashMap<Address, String>();
     private final Map<Address, UserInfo> userDomains = new HashMap<Address, UserInfo>();
     private final Map<Integer, BigInteger> domainPrice = new HashMap<Integer, BigInteger>();
-    private final BigInteger DEFAULT_PRICE;
+    private BigInteger defaultPrice;
+    private int defaultPriceLength;
     private final TreasuryManager treasuryManager;
     private BigInteger accPerShare = BigInteger.ZERO;
     private BigInteger lastAward = BigInteger.ZERO;
@@ -82,7 +79,8 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         domainPrice.put(4, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(1000)));
         domainPrice.put(5, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(500)));
         domainPrice.put(6, treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(200)));
-        this.DEFAULT_PRICE = treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(100));
+        this.defaultPrice = treasuryManager.ONE_NULS.multiply(BigInteger.valueOf(100));
+        this.defaultPriceLength = 7;
     }
 
     public void initialize(
@@ -104,6 +102,12 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(token721ForSuffixMap.containsKey(Msg.sender()), "Only domain721 can call it.");
     }
 
+    @Payable
+    @Override
+    public void _payable() {
+        require(Msg.sender().isContract(), "Do not accept direct transfers");
+    }
+
     public void addDomainSuffix(String suffix, Address _721) {
         onlyOwner();
         lastDefaultStartId = lastDefaultStartId.add(_100000);
@@ -118,8 +122,41 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         onlyOwner();
         require(length > 0, "error length");
         require(price.compareTo(treasuryManager.ONE_NULS) >= 0, "Error price");
-        domainPrice.put(length, price);
+
+        if (length >= defaultPriceLength) {
+            require(length == defaultPriceLength, "Can only be added in order");
+            require(price.compareTo(defaultPrice) > 0, "Price must be greater than the default price");
+            this.defaultPriceLength++;
+            domainPrice.put(length, price);
+        } else {
+            int before = length - 1;
+            int after = length + 1;
+            BigInteger beforePrice;
+            BigInteger afterPrice;
+            if (before == 0) {
+                beforePrice = treasuryManager.ONE_NULS.multiply(treasuryManager.ONE_NULS);
+            } else {
+                beforePrice = domainPrice.get(before);
+            }
+            if (after == defaultPriceLength) {
+                afterPrice = defaultPrice;
+            } else {
+                afterPrice = domainPrice.get(after);
+            }
+            require(price.compareTo(beforePrice) < 0 && price.compareTo(afterPrice) > 0, "The price should be between "+ toNuls(afterPrice) + " and " + toNuls(beforePrice));
+            domainPrice.put(length, price);
+        }
         emit(new ChangeDomainPrice(length, price.toString()));
+    }
+
+    public void changeDefaultDomainPrice(BigInteger price) {
+        onlyOwner();
+        require(price.compareTo(treasuryManager.ONE_NULS) >= 0, "Error price");
+
+        BigInteger _price = domainPrice.get(defaultPriceLength - 1);
+        require(_price.compareTo(price) > 0, "The price is high");
+        this.defaultPrice = price;
+        emit(new ChangeDefaultDomainPrice(defaultPriceLength, price.toString()));
     }
 
     @Payable
@@ -248,6 +285,17 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         }
         userFrom.setRewardDebt(BigInteger.valueOf(userFrom.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
         userTo.setRewardDebt(BigInteger.valueOf(userTo.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
+        emit(new DomainTransfer(from, to, domain));
+    }
+
+    @View
+    public String getDefaultPrice() {
+        return defaultPrice.toString();
+    }
+
+    @View
+    public int getDefaultPriceLength() {
+        return defaultPriceLength;
     }
 
     @View
@@ -333,6 +381,15 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     @View
+    public String tokenURI(String domain) {
+        BigInteger id = domainIndexes.get(domain);
+        require(id != null, "error domain");
+        Address address = this.get721ById(id);
+        NRC721 nrc721 = new NRC721(address);
+        return nrc721.tokenURI(id);
+    }
+
+    @View
     public Address get721ById(BigInteger tokenId) {
         BigInteger key = tokenId.divide(_100000).multiply(_100000);
         Address token721 = token721ByStartIds.get(key);
@@ -341,7 +398,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     @View
-    public String pendingToken(Address user) {
+    public String pendingAward(Address user) {
         UserInfo userInfo = userDomains.get(user);
         require(userInfo != null && userInfo.getActiveDomainsSize() > 0, "No domains");
         Staking staking = new Staking(treasuryManager.getStaking());
@@ -404,7 +461,11 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     private BigInteger extractDecimal(BigInteger na) {
-        return na.subtract(new BigDecimal(na).movePointLeft(8).toBigInteger().multiply(treasuryManager.ONE_NULS));
+        return na.subtract(toNuls(na).toBigInteger().multiply(treasuryManager.ONE_NULS));
+    }
+
+    private BigDecimal toNuls(BigInteger na) {
+        return new BigDecimal(na).movePointLeft(8);
     }
 
     private void _activeAward(Address user, BigInteger userPay, String suffix, String domain, boolean newId) {
@@ -471,7 +532,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(prefixLength > 0, "Error domain length");
         BigInteger price = domainPrice.get(prefixLength);
         if (price == null) {
-            price = DEFAULT_PRICE;
+            price = defaultPrice;
         }
         return price;
     }

@@ -61,6 +61,7 @@ public class PocmInfo {
     public BigInteger c = BigInteger.TEN;
     public int operatingModel;
     public int rewardDrawRatioForLp;
+    public Address treasury;
 
     public void addLpSupply(BigInteger lpSupply) {
         if (this.lpSupply.compareTo(BigInteger.ZERO) == 0 && lpSupply.compareTo(BigInteger.ZERO) > 0) {

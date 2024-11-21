@@ -67,6 +67,7 @@ public class ConsensusManager {
     private Map<String, ConsensusAgentDepositInfo> agentDeposits;
     private NulsDomainStaking pocmContract;
     private PocmInfo pi;
+    private BigInteger pendingTreasury = BigInteger.ZERO;
 
     public ConsensusManager(Map<String, UserInfo> userInfo,
                             Map<String, ConsensusAgentDepositInfo> agentDeposits,
@@ -187,14 +188,22 @@ public class ConsensusManager {
         BigInteger b = BigInteger.valueOf(100);
         BigInteger project = availableAward.multiply(b.subtract(pi.c)).divide(b);
         BigInteger p = availableAward.subtract(project);
-        require(p.compareTo(MININUM_TRANSFER_AMOUNT) >= 0, "Reward too small");
+        pendingTreasury = pendingTreasury.add(p);
+        if (pendingTreasury.compareTo(MININUM_TRANSFER_AMOUNT) >= 0) {
+            pi.treasury.transfer(pendingTreasury);
+            pendingTreasury = BigInteger.ZERO;
+        }
         if (pi.operatingModel == PocmUtil.NORMAL_MODE) {
             pocmContract.getAwardReceiver().transfer(project);
         } else if (pi.operatingModel == PocmUtil.LP_MODE) {
             //pocmContract.viewLp().transfer(project);
             pocmContract.viewLp().call("amountEnter", null, new String[][]{new String[]{"0"}, new String[]{}}, project);
         }
-        return p;
+        return pendingTreasury;
+    }
+
+    public BigInteger getPendingTreasury() {
+        return pendingTreasury;
     }
 
     /**

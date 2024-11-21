@@ -48,19 +48,22 @@ public class NulsDomainStaking extends Ownable implements Contract {
 
     /**
      *
+     * @param treasury                          国库
      * @param official                          管理者
-     * @param awardReceiver                     节点共识奖励接收者
+     * @param domain                            domain合约
      */
     public void initialize(
+                        Address treasury,
                         Address official,
-                        Address awardReceiver) {
+                        Address domain) {
         onlyOwner();
         if (initialized) {
             revert("PocmInitialized");
         }
         initialized = true;
         super.setOfficial(official.toString());
-        super.setAwardReceiver(awardReceiver);
+        super.setAwardReceiver(domain);
+        pi.treasury = treasury;
         String candyTokenAddress = deploy(new String[]{Msg.address().toString(), "i" + Block.timestamp()}, candyTokenCopy, new String[]{"domainStaking", "DOMAIN", "1000010000000", "18"});
         Address candyToken = new Address(candyTokenAddress);
         // 糖果资产检查
@@ -319,8 +322,7 @@ public class NulsDomainStaking extends Ownable implements Contract {
      */
     public void transferConsensusRewardByOwner() {
         require(pi.openConsensus, "Consensus is not turned on");
-        BigInteger plr = consensusManager.transferConsensusReward();
-        new Address(OFFICIAL_ADDRESS).transfer(plr);
+        consensusManager.transferConsensusReward();
     }
 
     /**
@@ -483,6 +485,15 @@ public class NulsDomainStaking extends Ownable implements Contract {
     @View
     public String getAuthorizationCode() {
         return pi.authorizationCode;
+    }
+    @View
+    public String getTreasury() {
+        return pi.treasury.toString();
+    }
+
+    @View
+    public String getPendingTreasury() {
+        return consensusManager.getPendingTreasury().toString();
     }
 
     @View
