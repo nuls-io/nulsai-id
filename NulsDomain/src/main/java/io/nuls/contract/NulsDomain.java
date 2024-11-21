@@ -120,7 +120,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     public void changeDomainPrice(int length, BigInteger price) {
         onlyOwner();
-        require(length > 0, "error length");
+        require(length > 0 && length <= 64, "error length");
         require(price.compareTo(treasuryManager.ONE_NULS) >= 0, "Error price");
 
         if (length >= defaultPriceLength) {
@@ -529,7 +529,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     private BigInteger getPrice(String suffix, String domain) {
         require(domain != null && suffix != null, "Error domain");
         int prefixLength = domain.length() - (suffix.length() + 1);
-        require(prefixLength > 0, "Error domain length");
+        require(prefixLength > 0 && prefixLength <= 64, "Error domain length");
         BigInteger price = domainPrice.get(prefixLength);
         if (price == null) {
             price = defaultPrice;
