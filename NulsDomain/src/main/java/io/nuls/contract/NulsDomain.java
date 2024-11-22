@@ -264,6 +264,8 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     public void domainTransfer(Address from, Address to, BigInteger tokenId) {
         onlyDomain721();
+        Address token721 = this.get721ById(tokenId);
+        require(Msg.sender().equals(token721), "Domain transfer: token721 caller error");
         UserInfo userFrom = userDomains.get(from);
         String domain = domains.get(tokenId);
         require(domain != null, "Domain Get: error tokenId");
