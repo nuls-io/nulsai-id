@@ -400,6 +400,15 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     @View
+    public Address userAddress(String domain) {
+        BigInteger id = domainIndexes.get(domain);
+        require(id != null, "error domain");
+        Address address = this.get721ById(id);
+        NRC721 nrc721 = new NRC721(address);
+        return nrc721.ownerOf(id);
+    }
+
+    @View
     public String userURI(Address user) {
         UserInfo userInfo = userDomains.get(user);
         require(userInfo != null, "not exist");
