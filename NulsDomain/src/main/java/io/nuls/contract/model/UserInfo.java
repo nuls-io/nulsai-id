@@ -38,6 +38,7 @@ public class UserInfo {
     private String uri;
     private final Set<String> activeDomains;
     private final Set<String> inactiveDomains;
+    private BigInteger received;
     private BigInteger pending;
     private BigInteger rewardDebt;
 
@@ -45,7 +46,16 @@ public class UserInfo {
         this.activeDomains = new HashSet<String>();
         this.inactiveDomains = new HashSet<String>();
         this.pending = BigInteger.ZERO;
+        this.received = BigInteger.ZERO;
         this.rewardDebt = BigInteger.ZERO;
+    }
+
+    public BigInteger getReceived() {
+        return received;
+    }
+
+    public void addReceived(BigInteger received) {
+        this.received = this.received.add(received);
     }
 
     public boolean existActive(String domain) {

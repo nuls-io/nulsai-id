@@ -66,11 +66,9 @@ public class NulsDomainStaking extends Ownable implements Contract {
         pi.treasury = treasury;
         String candyTokenAddress = deploy(new String[]{Msg.address().toString(), "i" + Block.timestamp()}, candyTokenCopy, new String[]{"domainStaking", "DOMAIN", "1000010000000", "18"});
         Address candyToken = new Address(candyTokenAddress);
-        // 糖果资产检查
         pi.isNRC20Candy = true;
         pi.candyTokenWrapper = new NRC20Wrapper(candyToken);
         pi.candyTokenWrapper.transfer(Msg.sender(), BigInteger.TEN.pow(18).multiply(BigInteger.valueOf(10000000)));
-
         pi.candyToken = candyToken;
         pi.candyAssetChainId = 0;
         pi.candyAssetId = 0;

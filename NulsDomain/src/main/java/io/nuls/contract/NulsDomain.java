@@ -229,11 +229,6 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         _nonReentrantAfter();
     }
 
-    /*public void burn(@Required Address owner, @Required BigInteger tokenId) {
-        require(isApprovedOrOwner(Msg.sender(), tokenId), "NRC721: transfer caller is not owner nor approved");
-        super.burnBase(owner, tokenId);
-    }*/
-
     public boolean batchMint(@Required String[] tos, @Required String[] domains) {
         onlyOwner();
         require(tos.length <= 100, "max size: 100.");
@@ -410,6 +405,13 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     @View
+    public String getUserRewardReceived(Address user) {
+        UserInfo userInfo = userDomains.get(user);
+        require(userInfo != null, "not exist");
+        return userInfo.getReceived().toString();
+    }
+
+    @View
     public Address get721ById(BigInteger tokenId) {
         BigInteger key = tokenId.divide(_100000).multiply(_100000);
         Address token721 = token721ByStartIds.get(key);
@@ -476,6 +478,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             return BigInteger.ZERO;
         }
         userInfo.setPending(BigInteger.ZERO);
+        userInfo.addReceived(pending);
         user.transfer(pending);
         return pending;
     }
