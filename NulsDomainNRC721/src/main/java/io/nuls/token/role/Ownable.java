@@ -22,12 +22,17 @@ public class Ownable {
     protected Address contractCreator;
 
     protected Address owner;
+    protected Address official;
     protected Map<Address, Boolean> minters = new HashMap<Address, Boolean>();
 
     public Ownable() {
         this.owner = Msg.sender();
         this.contractCreator = this.owner;
         minters.put(owner, true);
+    }
+
+    protected void setOfficial(Address official) {
+        this.official = official;
     }
 
     @View
@@ -40,12 +45,21 @@ public class Ownable {
         return this.contractCreator != null ? this.contractCreator.toString() : "";
     }
 
+    @View
+    public Address viewOfficial() {
+        return official;
+    }
+
     protected void onlyOwner() {
         require(Msg.sender().equals(owner), "Only the owner of the contract can execute it.");
     }
 
     protected void onlyMinter() {
         require(isMinter(Msg.sender()), "MinterRole: caller does not have the Minter role");
+    }
+
+    protected void onlyOfficial() {
+        require(Msg.sender().equals(official), "Refused.");
     }
 
     @View
@@ -72,6 +86,13 @@ public class Ownable {
         require(newOwner != null, "Empty new owner");
         emit(new OwnershipTransferredEvent(owner, newOwner));
         owner = newOwner;
+    }
+
+    public void transferOfficialShip(Address newOfficial) {
+        onlyOfficial();
+        require(newOfficial != null, "Empty new official");
+        emit(new OwnershipTransferredEvent(official, newOfficial));
+        official = newOfficial;
     }
 
     public void transferOtherNRC20(@Required Address nrc20, @Required Address to, @Required BigInteger value) {

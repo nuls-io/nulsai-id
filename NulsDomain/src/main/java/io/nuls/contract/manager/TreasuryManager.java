@@ -46,10 +46,12 @@ public class TreasuryManager {
     private BigInteger stakingAmount;
     private Address staking;
     private Address treasury;
+    private BigInteger feeRate;
 
     public TreasuryManager() {
         this.available = ZERO;
         this.stakingAmount = ZERO;
+        this.feeRate = valueOf(20);
     }
 
     public void setStaking(Address staking) {
@@ -58,6 +60,10 @@ public class TreasuryManager {
 
     public void setTreasury(Address treasury) {
         this.treasury = treasury;
+    }
+
+    public void setFeeRate(BigInteger feeRate) {
+        this.feeRate = feeRate;
     }
 
     public Address getStaking() {
@@ -80,7 +86,7 @@ public class TreasuryManager {
     }
 
     public void add(BigInteger value) {
-        BigInteger fee = value.multiply(valueOf(20)).divide(valueOf(100));
+        BigInteger fee = value.multiply(feeRate).divide(valueOf(100));
         value = value.subtract(fee);
         this.treasury.transfer(fee);
 

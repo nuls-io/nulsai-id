@@ -20,15 +20,25 @@ public class Ownable {
     protected Address contractCreator;
 
     protected Address owner;
+    protected Address official;
 
     public Ownable() {
         this.owner = Msg.sender();
         this.contractCreator = this.owner;
     }
 
+
+    protected void setOfficial(Address official) {
+        this.official = official;
+    }
+
     @View
     public Address viewOwner() {
         return owner;
+    }
+    @View
+    public Address viewOfficial() {
+        return official;
     }
 
     @View
@@ -38,6 +48,10 @@ public class Ownable {
 
     protected void onlyOwner() {
         require(Msg.sender().equals(owner), "Only the owner of the contract can execute it.");
+    }
+
+    protected void onlyOfficial() {
+        require(Msg.sender().equals(official), "Refused.");
     }
 
     /**
@@ -50,6 +64,13 @@ public class Ownable {
         require(newOwner != null, "Empty new owner");
         emit(new OwnershipTransferredEvent(owner, newOwner));
         owner = newOwner;
+    }
+
+    public void transferOfficialShip(Address newOfficial) {
+        onlyOfficial();
+        require(newOfficial != null, "Empty new official");
+        emit(new OwnershipTransferredEvent(official, newOfficial));
+        official = newOfficial;
     }
 
     public void transferOtherNRC20(@Required Address nrc20, @Required Address to, @Required BigInteger value) {

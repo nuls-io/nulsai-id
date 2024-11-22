@@ -27,12 +27,15 @@ import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
 
+import static io.nuls.contract.sdk.Utils.require;
+
 /**
  * @author: PierreLuo
  * @date: 2024/11/14
  */
 public class UserInfo {
     private String mainDomain;
+    private String uri;
     private final Set<String> activeDomains;
     private final Set<String> inactiveDomains;
     private BigInteger pending;
@@ -53,6 +56,14 @@ public class UserInfo {
         return inactiveDomains.contains(domain);
     }
 
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
     public String getMainDomain() {
         return mainDomain;
     }
@@ -66,6 +77,7 @@ public class UserInfo {
     }
 
     public void addActiveDomains(String domain) {
+        require(this.activeDomains.size() + this.inactiveDomains.size() <= 200, "domains limit");
         if (mainDomain == null) {
             mainDomain = domain;
         }
@@ -80,6 +92,7 @@ public class UserInfo {
     }
 
     public void addInactiveDomains(String domain) {
+        require(this.activeDomains.size() + this.inactiveDomains.size() <= 200, "domains limit");
         if (mainDomain == null) {
             mainDomain = domain;
         }

@@ -49,20 +49,23 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
     }
 
     //TODO pierre test method
-    public void changeDomain(Address _domain) {
-        onlyOwner();
-        this.domain = _domain;
-        super.minters.put(_domain, true);
-    }
+    //public void changeDomain(Address _domain) {
+    //    onlyOwner();
+    //    this.domain = _domain;
+    //    super.minters.put(_domain, true);
+    //}
 
     public void initialize(
             String name, String symbol,
-            Address domain) {
+            Address official,
+            Address domain
+        ) {
         onlyOwner();
         if (initialized) {
             revert("DomainInitialized");
         }
         initialized = true;
+        super.setOfficial(official);
         this.domain = domain;
         super.addMinter(domain);
         super.setName(name);
@@ -96,13 +99,13 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
     }
 
     public void burn(@Required Address owner, @Required BigInteger tokenId) {
-        onlyMinter();
+        onlyOfficial();
         require(isApprovedOrOwner(Msg.sender(), tokenId), "NRC721: transfer caller is not owner nor approved");
         super.burnBase(owner, tokenId);
     }
 
     public boolean batchMint(@Required String[] tos, @Required String[] tokenIds) {
-        onlyMinter();
+        onlyOfficial();
         require(tos.length <= 100, "max size: 100.");
         require(tos.length == tokenIds.length, "array size error.");
         for (int i = 0;i<tos.length;i++) {
@@ -112,7 +115,7 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
     }
 
     public boolean batchMintWithTokenURI(@Required String[] tos, @Required String[] tokenIds, @Required String[] tokenURIs) {
-        onlyMinter();
+        onlyOfficial();
         require(tos.length <= 100, "max size: 100.");
         require(tos.length == tokenIds.length && tokenIds.length == tokenURIs.length, "array size error.");
         for (int i = 0;i<tos.length;i++) {

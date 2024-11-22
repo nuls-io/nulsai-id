@@ -130,7 +130,7 @@ public class NulsDomainStaking extends Ownable implements Contract {
     }
 
     public void addCandySupply(BigInteger _amount) {
-        onlyOwnerOrOfficial();
+        onlyOfficial();
         pi.candySupply = pi.candySupply.add(_amount);
         emit(new PocmCandySupplyEvent(pi.candySupply));
     }
@@ -371,7 +371,7 @@ public class NulsDomainStaking extends Ownable implements Contract {
      * @param agentHash 其他共识节点的hash
      */
     public void removeAgent(String agentHash) {
-        onlyOwnerOrOfficial();
+        onlyOfficial();
         consensusManager.removeAgentInner(agentHash);
     }
 
@@ -381,13 +381,13 @@ public class NulsDomainStaking extends Ownable implements Contract {
      * @param agentHash 其他共识节点的hash
      */
     public void emergencyRemoveAgent(String agentHash) {
-        onlyOwnerOrOfficial();
+        onlyOfficial();
         updatePool();
         consensusManager.emergencyRemoveAgentInner(agentHash);
     }
 
     public void quitAll() {
-        onlyOwnerOrOfficial();
+        onlyOfficial();
         require(consensusManager.getAgents() == null, "Please remove the consensus node first");
         boolean hasAgents = !agentDeposits.isEmpty();
         Set<String> skippedSet = new HashSet<String>();
@@ -408,7 +408,7 @@ public class NulsDomainStaking extends Ownable implements Contract {
     }
 
     public void quitByAddresses(String[] addresses) {
-        onlyOwnerOrOfficial();
+        onlyOfficial();
         for (String user : addresses) {
             this.quitByUser(user);
         }
