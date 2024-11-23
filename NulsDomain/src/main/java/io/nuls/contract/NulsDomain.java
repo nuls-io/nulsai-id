@@ -167,6 +167,11 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         emit(new ChangeDefaultDomainPrice(defaultPriceLength, price.toString()));
     }
 
+    public void changeStaking(Address _staking) {
+        onlyOfficial();
+        treasuryManager.setStaking(_staking);
+    }
+
     @Payable
     public boolean mint(@Required String domain) {
         _nonReentrantBefore();
