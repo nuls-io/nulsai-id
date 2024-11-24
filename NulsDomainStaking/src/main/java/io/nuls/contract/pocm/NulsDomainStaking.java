@@ -58,7 +58,7 @@ public class NulsDomainStaking extends Ownable implements Contract {
                         Address domain) {
         onlyOwner();
         if (initialized) {
-            revert("PocmInitialized");
+            revert("StakingInitialized");
         }
         initialized = true;
         super.setOfficial(official.toString());

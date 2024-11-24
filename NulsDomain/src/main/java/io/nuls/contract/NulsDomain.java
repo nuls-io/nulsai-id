@@ -195,8 +195,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(tokenId != null, "Not exist domain");
         Boolean award = domainAwards.get(domain);
         require(award == null || !award, "Already active");
-        Address token721 = this.get721ById(tokenId);
-        NRC721 nrc721 = new NRC721(token721);
+        String token721 = this.get721ById(tokenId);
+        require(!token721.isEmpty(), "Error tokenId");
+        NRC721 nrc721 = new NRC721(new Address(token721));
         require(nrc721.ownerOf(tokenId).equals(Msg.sender()), "NRC721: token that is not own");
         String[] split = domain.split("\\.");
         String suffix = split[split.length - 1];
@@ -215,8 +216,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         _nonReentrantBefore();
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
-        Address token721 = this.get721ById(tokenId);
-        NRC721 nrc721 = new NRC721(token721);
+        String token721 = this.get721ById(tokenId);
+        require(!token721.isEmpty(), "Error tokenId");
+        NRC721 nrc721 = new NRC721(new Address(token721));
         require(nrc721.ownerOf(tokenId).equals(Msg.sender()), "NRC721: token that is not own");
         UserInfo userInfo = userDomains.get(Msg.sender());
         userInfo.setMainDomain(domain);
@@ -255,7 +257,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     public void setTokenURI(BigInteger tokenId, String uri) {
-        NRC721 nrc721 = new NRC721(this.get721ById(tokenId));
+        String token721 = this.get721ById(tokenId);
+        require(!token721.isEmpty(), "Error tokenId");
+        NRC721 nrc721 = new NRC721(new Address(token721));
         require(nrc721.ownerOf(tokenId).equals(Msg.sender()), "NRC721: token that is not own");
         nrc721.setTokenURI(tokenId, uri);
     }
@@ -269,8 +273,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     public void domainTransfer(Address from, Address to, BigInteger tokenId) {
         onlyDomain721();
-        Address token721 = this.get721ById(tokenId);
-        require(Msg.sender().equals(token721), "Domain transfer: token721 caller error");
+        String token721 = this.get721ById(tokenId);
+        require(!token721.isEmpty(), "Domain transfer: error tokenId");
+        require(Msg.sender().equals(new Address(token721)), "Domain transfer: token721 caller error");
         UserInfo userFrom = userDomains.get(from);
         String domain = domains.get(tokenId);
         require(domain != null, "Domain Get: error tokenId");
@@ -398,47 +403,63 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     @View
     public String tokenURI(String domain) {
         BigInteger id = domainIndexes.get(domain);
-        require(id != null, "error domain");
-        Address address = this.get721ById(id);
-        NRC721 nrc721 = new NRC721(address);
+        if (id == null) {
+            return "";
+        }
+        String address = this.get721ById(id);
+        if (address.isEmpty()) {
+            return "";
+        }
+        NRC721 nrc721 = new NRC721(new Address(address));
         return nrc721.tokenURI(id);
     }
 
     @View
-    public Address userAddress(String domain) {
+    public String userAddress(String domain) {
         BigInteger id = domainIndexes.get(domain);
-        require(id != null, "error domain");
-        Address address = this.get721ById(id);
-        NRC721 nrc721 = new NRC721(address);
-        return nrc721.ownerOf(id);
+        if (id == null) {
+            return "";
+        }
+        String address = this.get721ById(id);
+        if (address.isEmpty()) {
+            return "";
+        }
+        NRC721 nrc721 = new NRC721(new Address(address));
+        Address owner = nrc721.ownerOf(id);
+        return owner == null ? "" : owner.toString();
     }
 
     @View
     public String userURI(Address user) {
         UserInfo userInfo = userDomains.get(user);
-        require(userInfo != null, "not exist");
+        if (userInfo == null) {
+            return "";
+        }
         return userInfo.getUri();
     }
 
     @View
     public String getUserRewardReceived(Address user) {
         UserInfo userInfo = userDomains.get(user);
-        require(userInfo != null, "not exist");
+        if (userInfo == null) {
+            return "0";
+        }
         return userInfo.getReceived().toString();
     }
 
     @View
-    public Address get721ById(BigInteger tokenId) {
+    public String get721ById(BigInteger tokenId) {
         BigInteger key = tokenId.divide(_100000).multiply(_100000);
         Address token721 = token721ByStartIds.get(key);
-        require(token721 != null, "error tokenId");
-        return token721;
+        return token721 == null ? "" : token721.toString();
     }
 
     @View
     public String pendingAward(Address user) {
         UserInfo userInfo = userDomains.get(user);
-        require(userInfo != null && userInfo.getActiveDomainsSize() > 0, "No domains");
+        if (userInfo == null || userInfo.getActiveDomainsSize() == 0) {
+            return "0";
+        }
         Staking staking = new Staking(treasuryManager.getStaking());
         BigInteger totalAward = staking.ownerTotalConsensusAward();
         BigInteger award = totalAward.subtract(lastAward);
