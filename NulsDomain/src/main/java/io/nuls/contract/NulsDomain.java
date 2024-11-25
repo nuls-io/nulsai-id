@@ -279,31 +279,35 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         UserInfo userFrom = userDomains.get(from);
         String domain = domains.get(tokenId);
         require(domain != null, "Domain Get: error tokenId");
-        Boolean award = domainAwards.get(domain);
-        boolean active = award != null && award;
-        if (active) {
-            require(userFrom.existActive(domain), "Domain Active Check: error domain");
-        } else {
-            require(userFrom.existInactive(domain), "Domain Inactive Check: error domain");
-        }
         updatePool();
-        UserInfo userTo = userDomains.get(to);
-        if (userTo == null) {
-            userTo = new UserInfo();
-            userDomains.put(to, userTo);
-        }
-        _receive(from, userFrom);
-        _receive(to, userTo);
-
-        if (!active) {
-            userTo.addInactiveDomains(domain);
-            userFrom.removeInactiveDomains(domain);
+        if (from.equals(to)) {
+            _receive(from, userFrom);
+            userFrom.setRewardDebt(BigInteger.valueOf(userFrom.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
         } else {
-            userTo.addActiveDomains(domain);
-            userFrom.removeActiveDomains(domain);
+            Boolean award = domainAwards.get(domain);
+            boolean active = award != null && award;
+            if (active) {
+                require(userFrom.existActive(domain), "Domain Active Check: error domain");
+            } else {
+                require(userFrom.existInactive(domain), "Domain Inactive Check: error domain");
+            }
+            UserInfo userTo = userDomains.get(to);
+            if (userTo == null) {
+                userTo = new UserInfo();
+                userDomains.put(to, userTo);
+            }
+            _receive(from, userFrom);
+            _receive(to, userTo);
+            if (!active) {
+                userTo.addInactiveDomains(domain);
+                userFrom.removeInactiveDomains(domain);
+            } else {
+                userTo.addActiveDomains(domain);
+                userFrom.removeActiveDomains(domain);
+            }
+            userFrom.setRewardDebt(BigInteger.valueOf(userFrom.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
+            userTo.setRewardDebt(BigInteger.valueOf(userTo.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
         }
-        userFrom.setRewardDebt(BigInteger.valueOf(userFrom.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
-        userTo.setRewardDebt(BigInteger.valueOf(userTo.getActiveDomainsSize()).multiply(accPerShare).divide(_1e12));
         emit(new DomainTransfer(from, to, domain));
     }
 
