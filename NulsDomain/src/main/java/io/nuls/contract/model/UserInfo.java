@@ -36,6 +36,7 @@ import static io.nuls.contract.sdk.Utils.require;
 public class UserInfo {
     private String mainDomain;
     private String uri;
+    private String pub;
     private final Set<String> activeDomains;
     private final Set<String> inactiveDomains;
     private BigInteger received;
@@ -72,6 +73,18 @@ public class UserInfo {
 
     public void setUri(String uri) {
         this.uri = uri;
+    }
+
+    public String getPub() {
+        return pub;
+    }
+
+    public void updatePub(String pub) {
+        if (pub == null)
+            return;
+        if (this.pub == null) {
+            this.pub = pub;
+        }
     }
 
     public String getMainDomain() {

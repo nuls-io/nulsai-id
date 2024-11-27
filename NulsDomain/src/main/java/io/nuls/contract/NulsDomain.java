@@ -32,6 +32,7 @@ import io.nuls.contract.model.UserInfo;
 import io.nuls.contract.sdk.Address;
 import io.nuls.contract.sdk.Contract;
 import io.nuls.contract.sdk.Msg;
+import io.nuls.contract.sdk.Utils;
 import io.nuls.contract.sdk.annotation.JSONSerializable;
 import io.nuls.contract.sdk.annotation.Payable;
 import io.nuls.contract.sdk.annotation.Required;
@@ -104,6 +105,10 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(token721ForSuffixMap.containsKey(Msg.sender()), "Only domain721 can call it.");
     }
 
+    protected void checkPub(String pub) {
+        require(Utils.getAddressByPublicKey(pub).equals(Msg.sender().toString()), "Error pubKey");
+    }
+
     public void setFeeRate(int feeRate) {
         onlyOfficial();
         require(feeRate >= 10 && feeRate < 100, "error feeRate");
@@ -173,24 +178,27 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     @Payable
-    public boolean mint(@Required String domain) {
+    public boolean mint(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
-        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, null, true);
+        this.checkPub(pub);
+        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, null, true, pub);
         _nonReentrantAfter();
         return bool;
     }
 
     @Payable
-    public boolean mintWithTokenURI(@Required String domain, @Required String tokenURI) {
+    public boolean mintWithTokenURI(@Required String domain, @Required String tokenURI, @Required String pub) {
         _nonReentrantBefore();
-        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, tokenURI, true);
+        this.checkPub(pub);
+        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, tokenURI, true, pub);
         _nonReentrantAfter();
         return bool;
     }
 
     @Payable
-    public void activeAward(String domain) {
+    public void activeAward(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
+        this.checkPub(pub);
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
         Boolean award = domainAwards.get(domain);
@@ -208,12 +216,13 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
                 prefix += ".";
             }
         }*/
-        this._activeAward(Msg.sender(), Msg.value(), suffix, domain, false);
+        this._activeAward(Msg.sender(), Msg.value(), suffix, domain, false, pub);
         _nonReentrantAfter();
     }
 
-    public void changeMainDomain(String domain) {
+    public void changeMainDomain(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
+        this.checkPub(pub);
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
         String token721 = this.get721ById(tokenId);
@@ -221,6 +230,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         NRC721 nrc721 = new NRC721(new Address(token721));
         require(nrc721.ownerOf(tokenId).equals(Msg.sender()), "NRC721: token that is not own");
         UserInfo userInfo = userDomains.get(Msg.sender());
+        userInfo.updatePub(pub);
         userInfo.setMainDomain(domain);
         _nonReentrantAfter();
     }
@@ -236,22 +246,53 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         _nonReentrantAfter();
     }
 
-    public boolean batchMint(@Required String[] tos, @Required String[] domains) {
+    public boolean batchUpdatePub(@Required String[] tos, @Required String[] pubs) {
         onlyOwner();
         require(tos.length <= 100, "max size: 100.");
-        require(tos.length == domains.length, "array size error.");
+        require(tos.length == pubs.length, "array size error.");
+        String to;
+        String pub;
         for (int i = 0; i < tos.length; i++) {
-            this._mintWithTokenURI(new Address(tos[i]), domains[i], null, false);
+            to = tos[i];
+            UserInfo userInfo = this.userDomains(new Address(to));
+            require(userInfo != null, "Error User: " + to);
+            pub = pubs[i];
+            require(pub != null && !pub.isEmpty() && Utils.getAddressByPublicKey(pub).equals(to), "Error pubKey: " + to);
+            userInfo.updatePub(pub);
         }
         return true;
     }
 
-    public boolean batchMintWithTokenURI(@Required String[] tos, @Required String[] domains, @Required String[] tokenURIs) {
+    public boolean batchMint(@Required String[] tos, @Required String[] domains, @Required String[] pubs) {
         onlyOwner();
         require(tos.length <= 100, "max size: 100.");
-        require(tos.length == domains.length && domains.length == tokenURIs.length, "array size error.");
+        require(tos.length == domains.length && domains.length == pubs.length, "array size error.");
+        String to;
+        String pub;
         for (int i = 0; i < tos.length; i++) {
-            this._mintWithTokenURI(new Address(tos[i]), domains[i], tokenURIs[i], false);
+            to = tos[i];
+            pub = pubs[i];
+            if (pub != null && !pub.isEmpty()) {
+                require(Utils.getAddressByPublicKey(pub).equals(to), "Error pubKey: " + to);
+            }
+            this._mintWithTokenURI(new Address(to), domains[i], null, false, pub);
+        }
+        return true;
+    }
+
+    public boolean batchMintWithTokenURI(@Required String[] tos, @Required String[] domains, @Required String[] tokenURIs, @Required String[] pubs) {
+        onlyOwner();
+        require(tos.length <= 100, "max size: 100.");
+        require(tos.length == domains.length && domains.length == tokenURIs.length && tokenURIs.length == pubs.length, "array size error.");
+        String to;
+        String pub;
+        for (int i = 0; i < tos.length; i++) {
+            to = tos[i];
+            pub = pubs[i];
+            if (pub != null && !pub.isEmpty()) {
+                require(Utils.getAddressByPublicKey(pub).equals(to), "Error pubKey: " + to);
+            }
+            this._mintWithTokenURI(new Address(to), domains[i], tokenURIs[i], false, pub);
         }
         return true;
     }
@@ -418,19 +459,27 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         return nrc721.tokenURI(id);
     }
 
+    @JSONSerializable
     @View
-    public String userAddress(String domain) {
+    public String[] userAddress(String domain) {
         BigInteger id = domainIndexes.get(domain);
         if (id == null) {
-            return "";
+            return new String[]{"", ""};
         }
         String address = this.get721ById(id);
         if (address.isEmpty()) {
-            return "";
+            return new String[]{"", ""};
         }
         NRC721 nrc721 = new NRC721(new Address(address));
         Address owner = nrc721.ownerOf(id);
-        return owner == null ? "" : owner.toString();
+        if (owner == null) {
+            return new String[]{"", ""};
+        }
+        UserInfo userInfo = userDomains.get(owner);
+        if (userInfo == null) {
+            return new String[]{"", ""};
+        }
+        return new String[]{owner.toString(), userInfo.getPub() == null ? "" : userInfo.getPub()};
     }
 
     @View
@@ -532,7 +581,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         return new BigDecimal(na).movePointLeft(8);
     }
 
-    private void _activeAward(Address user, BigInteger userPay, String suffix, String domain, boolean newId) {
+    private void _activeAward(Address user, BigInteger userPay, String suffix, String domain, boolean newId, String pub) {
         BigInteger price = this.getPrice(suffix, domain);
         require(userPay.compareTo(price) >= 0, "Insufficient payment");
         BigInteger decimalValue = this.extractDecimal(userPay);
@@ -544,6 +593,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             userInfo = new UserInfo();
             userDomains.put(user, userInfo);
         }
+        userInfo.updatePub(pub);
         updatePool();
         _receive(user, userInfo);
         if (!newId) {
@@ -557,7 +607,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         emit(new UserActiveAward(user.toString(), userPay, domain, newId));
     }
 
-    private boolean _mintWithTokenURI(Address to, String domain, String tokenURI, boolean reward) {
+    private boolean _mintWithTokenURI(Address to, String domain, String tokenURI, boolean reward, String pub) {
         require(!domainIndexes.containsKey(domain), "Already exist domain");
         String[] split = domain.split("\\.");
         String suffix = split[split.length - 1];
@@ -570,6 +620,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             userInfo = new UserInfo();
             userDomains.put(to, userInfo);
         }
+        userInfo.updatePub(pub);
         if (reward) {
             /*String prefix = "";
             for (int i = 0, length = split.length - 1; i < length; i ++) {
@@ -578,7 +629,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
                     prefix += ".";
                 }
             }*/
-            this._activeAward(to, Msg.value(), suffix, domain, true);
+            this._activeAward(to, Msg.value(), suffix, domain, true, null);
         } else {
             userInfo.addInactiveDomains(domain);
         }
