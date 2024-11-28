@@ -380,7 +380,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             return "0";
         }
         BigInteger price = domainPrice.getDomainPrice().get(length);
-        return price != null ? price.toString() : "0";
+        return price != null ? price.toString() : domainPrice.getDefaultPrice().toString();
     }
 
     @JSONSerializable
