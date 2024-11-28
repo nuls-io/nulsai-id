@@ -33,10 +33,14 @@ import java.math.BigInteger;
  */
 public class UserPendingAward implements Event {
     private String user;
+    private BigInteger prePending;
     private BigInteger pending;
+    private BigInteger poolBalance;
 
-    public UserPendingAward(String user, BigInteger pending) {
+    public UserPendingAward(String user, BigInteger prePending, BigInteger pending, BigInteger poolBalance) {
         this.user = user;
+        this.prePending = prePending;
         this.pending = pending;
+        this.poolBalance = poolBalance;
     }
 }

@@ -44,8 +44,9 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
     private boolean initialized = false;
     private Address domain;
 
-    public NulsDomainNRC721() {
-
+    public NulsDomainNRC721(String name, String symbol) {
+        super.setName(name);
+        super.setSymbol(symbol);
     }
 
     //TODO pierre test method
@@ -56,7 +57,7 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
     //}
 
     public void initialize(
-            String name, String symbol,
+
             Address official,
             Address domain
         ) {
@@ -68,8 +69,6 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
         super.setOfficial(official);
         this.domain = domain;
         super.addMinter(domain);
-        super.setName(name);
-        super.setSymbol(symbol);
         super.renounceMinter();
     }
 

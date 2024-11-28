@@ -30,10 +30,12 @@ import io.nuls.contract.sdk.Event;
  * @date: 2024/11/14
  */
 public class ChangeDomainPrice implements Event {
+    private String suffix;
     private int length;
     private String price;
 
-    public ChangeDomainPrice(int length, String price) {
+    public ChangeDomainPrice(String suffix, int length, String price) {
+        this.suffix = suffix;
         this.length = length;
         this.price = price;
     }
