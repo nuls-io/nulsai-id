@@ -356,6 +356,11 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     @View
+    public int getFeeRate() {
+        return treasuryManager.getFeeRate().intValue();
+    }
+
+    @View
     public String getDefaultPrice(String suffix) {
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         if (domainPrice == null) {

@@ -66,6 +66,10 @@ public class TreasuryManager {
         this.feeRate = feeRate;
     }
 
+    public BigInteger getFeeRate() {
+        return feeRate;
+    }
+
     public Address getStaking() {
         return staking;
     }
