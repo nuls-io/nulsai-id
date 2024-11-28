@@ -131,6 +131,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         require(domainPrice != null, "Domain Suffix Not Exist");
 
+        BigInteger prePrice = BigInteger.ZERO;
         int defaultPriceLength = domainPrice.getDefaultPriceLength();
         BigInteger defaultPrice = domainPrice.getDefaultPrice();
         Map<Integer, BigInteger> priceMap = domainPrice.getDomainPrice();
@@ -141,6 +142,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             domainPrice.setDefaultPriceLength(defaultPriceLength);
             priceMap.put(length, price);
         } else {
+            prePrice = priceMap.get(length);
             int before = length - 1;
             int after = length + 1;
             BigInteger beforePrice;
@@ -158,7 +160,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             require(price.compareTo(beforePrice) < 0 && price.compareTo(afterPrice) > 0, "The price should be between "+ toNuls(afterPrice) + " and " + toNuls(beforePrice));
             priceMap.put(length, price);
         }
-        emit(new ChangeDomainPrice(suffix, length, price.toString()));
+        emit(new ChangeDomainPrice(suffix, length, prePrice.toString(), price.toString()));
     }
 
     public void changeDefaultDomainPrice(String suffix, BigInteger price) {
@@ -171,8 +173,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         Map<Integer, BigInteger> priceMap = domainPrice.getDomainPrice();
         BigInteger _price = priceMap.get(defaultPriceLength - 1);
         require(_price.compareTo(price) > 0, "The price is high");
+        BigInteger defaultPrice = domainPrice.getDefaultPrice();
         domainPrice.setDefaultPrice(price);
-        emit(new ChangeDefaultDomainPrice(suffix, defaultPriceLength, price.toString()));
+        emit(new ChangeDefaultDomainPrice(suffix, defaultPriceLength, defaultPrice.toString(), price.toString()));
     }
 
     public void changeStaking(Address _staking) {

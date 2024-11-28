@@ -32,11 +32,13 @@ import io.nuls.contract.sdk.Event;
 public class ChangeDomainPrice implements Event {
     private String suffix;
     private int length;
+    private String prePrice;
     private String price;
 
-    public ChangeDomainPrice(String suffix, int length, String price) {
+    public ChangeDomainPrice(String suffix, int length, String prePrice, String price) {
         this.suffix = suffix;
         this.length = length;
+        this.prePrice = prePrice;
         this.price = price;
     }
 }
