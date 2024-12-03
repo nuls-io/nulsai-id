@@ -201,6 +201,16 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         return bool;
     }
 
+    public boolean mintHistory(@Required String domain, @Required String pub) {
+        _nonReentrantBefore();
+        this.checkPub(pub);
+        UserInfo userInfo = this.checkUserHistory();
+        boolean bool = this._mintWithTokenURI(Msg.sender(), domain, null, false, pub);
+        userInfo.setHistoryQuota(userInfo.getHistoryQuota() - 1);
+        _nonReentrantAfter();
+        return bool;
+    }
+
     @Payable
     public void activeAward(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
@@ -265,6 +275,22 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
             pub = pubs[i];
             require(pub != null && !pub.isEmpty() && Utils.getAddressByPublicKey(pub).equals(to), "Error pubKey: " + to);
             userInfo.updatePub(pub);
+        }
+        return true;
+    }
+
+    public boolean batchMintHistoryQuota(@Required String[] tos, @Required int[] quota) {
+        onlyOwner();
+        require(tos.length <= 100, "max size: 100.");
+        require(tos.length == quota.length, "array size error.");
+        for (int i = 0; i < tos.length; i++) {
+            Address toAddr = new Address(tos[i]);
+            UserInfo userInfo = userDomains.get(toAddr);
+            if (userInfo == null) {
+                userInfo = new UserInfo();
+                userDomains.put(toAddr, userInfo);
+            }
+            userInfo.setHistoryQuota(quota[i]);
         }
         return true;
     }
@@ -411,6 +437,15 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     @View
     public UserInfo userDomains(@Required Address user) {
         return userDomains.get(user);
+    }
+
+    @View
+    public int userHistoryQuota(@Required Address user) {
+        UserInfo userInfo = userDomains.get(user);
+        if (userInfo == null) {
+            return 0;
+        }
+        return userInfo.getHistoryQuota();
     }
 
     @View
@@ -683,6 +718,11 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         return price;
     }
 
-
+    private UserInfo checkUserHistory() {
+        Address sender = Msg.sender();
+        UserInfo userInfo = userDomains.get(sender);
+        require(userInfo != null && userInfo.getHistoryQuota() > 0, "error user history quota");
+        return userInfo;
+    }
 
 }

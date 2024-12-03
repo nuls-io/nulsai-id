@@ -42,6 +42,7 @@ public class UserInfo {
     private BigInteger received;
     private BigInteger pending;
     private BigInteger rewardDebt;
+    private int historyQuota;
 
     public UserInfo() {
         this.activeDomains = new HashSet<String>();
@@ -49,6 +50,15 @@ public class UserInfo {
         this.pending = BigInteger.ZERO;
         this.received = BigInteger.ZERO;
         this.rewardDebt = BigInteger.ZERO;
+        this.historyQuota = 0;
+    }
+
+    public int getHistoryQuota() {
+        return historyQuota;
+    }
+
+    public void setHistoryQuota(int historyQuota) {
+        this.historyQuota = historyQuota;
     }
 
     public BigInteger getReceived() {
