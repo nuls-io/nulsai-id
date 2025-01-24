@@ -91,7 +91,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         treasuryManager.setStaking(staking);
         treasuryManager.setTreasury(treasury);
         lastDefaultStartId = BigInteger.ZERO;
-        this.addSuffixInfo("nuls", nulsSuffix721, lastDefaultStartId);
+        this.addSuffixInfo("ai", nulsSuffix721, lastDefaultStartId);
     }
 
     protected void onlyDomain721() {
@@ -106,6 +106,11 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         onlyOfficial();
         require(feeRate >= 10 && feeRate < 100, "error feeRate");
         treasuryManager.setFeeRate(BigInteger.valueOf(feeRate));
+    }
+
+    public void setTreasury(Address treasury) {
+        onlyOfficial();
+        treasuryManager.setTreasury(treasury);
     }
 
     @Payable
@@ -280,7 +285,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     public boolean batchMintHistoryQuota(@Required String[] tos, @Required int[] quota) {
-        onlyOwner();
+        onlyOfficial();
         require(tos.length <= 100, "max size: 100.");
         require(tos.length == quota.length, "array size error.");
         for (int i = 0; i < tos.length; i++) {
@@ -296,7 +301,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     public boolean batchMint(@Required String[] tos, @Required String[] domains, @Required String[] pubs) {
-        onlyOwner();
+        onlyOfficial();
         require(tos.length <= 100, "max size: 100.");
         require(tos.length == domains.length && domains.length == pubs.length, "array size error.");
         String to;
@@ -313,7 +318,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     }
 
     public boolean batchMintWithTokenURI(@Required String[] tos, @Required String[] domains, @Required String[] tokenURIs, @Required String[] pubs) {
-        onlyOwner();
+        onlyOfficial();
         require(tos.length <= 100, "max size: 100.");
         require(tos.length == domains.length && domains.length == tokenURIs.length && tokenURIs.length == pubs.length, "array size error.");
         String to;

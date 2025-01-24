@@ -465,6 +465,11 @@ public class NulsDomainStaking extends Ownable implements Contract {
         pi.c = BigInteger.valueOf(c);
     }
 
+    public void updateTreasury(Address treasury) {
+        onlyOfficial();
+        pi.treasury = treasury;
+    }
+
     @View
     public int totalDepositAddressCount() {
         return this.userInfo.size();

@@ -49,15 +49,7 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
         super.setSymbol(symbol);
     }
 
-    //TODO pierre test method
-    //public void changeDomain(Address _domain) {
-    //    onlyOwner();
-    //    this.domain = _domain;
-    //    super.minters.put(_domain, true);
-    //}
-
     public void initialize(
-
             Address official,
             Address domain
         ) {
