@@ -124,7 +124,9 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         lastDefaultStartId = lastDefaultStartId.add(_100000);
         if (suffix == null || suffix.length() == 0) {
             NRC721 nrc721 = new NRC721(_721);
-            suffix = nrc721.name();
+            suffix = this.checkSuffix(nrc721.name());
+        } else {
+            suffix = this.checkSuffix(suffix);
         }
         this.addSuffixInfo(suffix, _721, lastDefaultStartId);
     }
@@ -133,6 +135,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         onlyOfficial();
         require(length > 0 && length <= 64, "error length");
         require(price.compareTo(treasuryManager.ONE_NULS) >= 0, "Error price");
+        suffix = this.checkSuffix(suffix);
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         require(domainPrice != null, "Domain Suffix Not Exist");
 
@@ -171,6 +174,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     public void changeDefaultDomainPrice(String suffix, BigInteger price) {
         onlyOfficial();
         require(price.compareTo(treasuryManager.ONE_NULS) >= 0, "Error price");
+        suffix = this.checkSuffix(suffix);
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         require(domainPrice != null, "Domain Suffix Not Exist");
 
@@ -188,10 +192,41 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         treasuryManager.setStaking(_staking);
     }
 
+    private String checkSuffix(String suffix) {
+        return this.toLowerCase(suffix);
+    }
+
+    private String checkDomain(String domain, boolean strict) {
+        return this.toLowerCase(domain);
+    }
+
+    private String toLowerCase(String str) {
+        if (str == null || str.isEmpty()) {
+            return str; // 如果字符串为 null 或空，直接返回
+        }
+
+        // 创建一个 StringBuilder 用于构建结果字符串
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            // 如果是大写字母，转换为小写
+            if (c >= 'A' && c <= 'Z') {
+                result.append((char) (c + 32));
+            } else {
+                // 非大写字母直接添加
+                result.append(c);
+            }
+        }
+
+        return result.toString(); // 返回结果字符串
+    }
+
     @Payable
     public boolean mint(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
         this.checkPub(pub);
+        domain = this.checkDomain(domain, true);
         boolean bool = this._mintWithTokenURI(Msg.sender(), domain, null, true, pub);
         _nonReentrantAfter();
         return bool;
@@ -201,6 +236,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     public boolean mintWithTokenURI(@Required String domain, @Required String tokenURI, @Required String pub) {
         _nonReentrantBefore();
         this.checkPub(pub);
+        domain = this.checkDomain(domain, true);
         boolean bool = this._mintWithTokenURI(Msg.sender(), domain, tokenURI, true, pub);
         _nonReentrantAfter();
         return bool;
@@ -210,6 +246,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         _nonReentrantBefore();
         this.checkPub(pub);
         UserInfo userInfo = this.checkUserHistory();
+        domain = this.checkDomain(domain, true);
         boolean bool = this._mintWithTokenURI(Msg.sender(), domain, null, false, pub);
         userInfo.setHistoryQuota(userInfo.getHistoryQuota() - 1);
         _nonReentrantAfter();
@@ -220,6 +257,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     public void activeAward(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
         this.checkPub(pub);
+        domain = this.checkDomain(domain, false);
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
         Boolean award = domainAwards.get(domain);
@@ -244,6 +282,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     public void changeMainDomain(@Required String domain, @Required String pub) {
         _nonReentrantBefore();
         this.checkPub(pub);
+        domain = this.checkDomain(domain, false);
         BigInteger tokenId = domainIndexes.get(domain);
         require(tokenId != null, "Not exist domain");
         String token721 = this.get721ById(tokenId);
@@ -306,13 +345,15 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(tos.length == domains.length && domains.length == pubs.length, "array size error.");
         String to;
         String pub;
+        String domain;
         for (int i = 0; i < tos.length; i++) {
             to = tos[i];
             pub = pubs[i];
             if (pub != null && !pub.isEmpty()) {
                 require(Utils.getAddressByPublicKey(pub).equals(to), "Error pubKey: " + to);
             }
-            this._mintWithTokenURI(new Address(to), domains[i], null, false, pub);
+            domain = this.checkDomain(domains[i], true);
+            this._mintWithTokenURI(new Address(to), domain, null, false, pub);
         }
         return true;
     }
@@ -323,13 +364,15 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(tos.length == domains.length && domains.length == tokenURIs.length && tokenURIs.length == pubs.length, "array size error.");
         String to;
         String pub;
+        String domain;
         for (int i = 0; i < tos.length; i++) {
             to = tos[i];
             pub = pubs[i];
             if (pub != null && !pub.isEmpty()) {
                 require(Utils.getAddressByPublicKey(pub).equals(to), "Error pubKey: " + to);
             }
-            this._mintWithTokenURI(new Address(to), domains[i], tokenURIs[i], false, pub);
+            domain = this.checkDomain(domains[i], true);
+            this._mintWithTokenURI(new Address(to), domain, tokenURIs[i], false, pub);
         }
         return true;
     }
@@ -396,6 +439,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     @View
     public String getDefaultPrice(String suffix) {
+        suffix = this.checkSuffix(suffix);
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         if (domainPrice == null) {
             return "0";
@@ -405,6 +449,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     @View
     public int getDefaultPriceLength(String suffix) {
+        suffix = this.checkSuffix(suffix);
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         if (domainPrice == null) {
             return 0;
@@ -414,6 +459,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     @View
     public String getDomainPrice(String suffix, int length) {
+        suffix = this.checkSuffix(suffix);
         DomainPrice domainPrice = domainPriceMap.get(suffix);
         if (domainPrice == null) {
             return "0";
@@ -425,6 +471,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     @JSONSerializable
     @View
     public String[] getPriceByDomain(String domain) {
+        domain = this.checkDomain(domain, false);
         String[] split = domain.split("\\.");
         String suffix = split[split.length - 1];
         Address token721 = domainSuffixFor721Map.get(suffix);
@@ -460,12 +507,14 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     @View
     public String domainId(@Required String domain) {
+        domain = this.checkDomain(domain, false);
         BigInteger id = domainIndexes.get(domain);
         return id != null ? id.toString() : "";
     }
 
     @View
     public boolean isActiveAward(@Required String domain) {
+        domain = this.checkDomain(domain, false);
         Boolean active = domainAwards.get(domain);
         if (active == null) {
             return false;
@@ -511,6 +560,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
 
     @View
     public String tokenURI(String domain) {
+        domain = this.checkDomain(domain, false);
         BigInteger id = domainIndexes.get(domain);
         if (id == null) {
             return "";
@@ -526,6 +576,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
     @JSONSerializable
     @View
     public String[] userAddress(String domain) {
+        domain = this.checkDomain(domain, false);
         BigInteger id = domainIndexes.get(domain);
         if (id == null) {
             return new String[]{"", ""};
@@ -679,6 +730,7 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         require(!domainIndexes.containsKey(domain), "Already exist domain");
         String[] split = domain.split("\\.");
         String suffix = split[split.length - 1];
+        require(this.checkDomainPrefix(domain.substring(0, domain.length() - suffix.length() - 1)), "error domain name");
         Address token721 = domainSuffixFor721Map.get(suffix);
         require(token721 != null, "check 721: error domain");
         NextId nextId = domainNextIds.get(suffix);
@@ -706,6 +758,16 @@ public class NulsDomain extends ReentrancyGuard implements Contract {
         nrc721.mintWithTokenURI(to, tokenId, tokenURI);
         domains.put(tokenId, domain);
         domainIndexes.put(domain, tokenId);
+        return true;
+    }
+
+    private boolean checkDomainPrefix(String domainPrefix) {
+        for (int i = 0, length = domainPrefix.length(); i < length; i++) {
+            char c = domainPrefix.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) {
+                return false; // 如果遇到非字母和非数字的字符，返回 false
+            }
+        }
         return true;
     }
 

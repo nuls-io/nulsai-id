@@ -5,7 +5,9 @@ import io.nuls.contract.sdk.Event;
 import io.nuls.contract.sdk.Msg;
 import io.nuls.contract.sdk.annotation.Required;
 import io.nuls.contract.sdk.annotation.View;
+import io.nuls.contract.sdk.token.AssetWrapper;
 import io.nuls.contract.sdk.token.NRC20Wrapper;
+import io.nuls.contract.sdk.token.Token;
 
 import java.math.BigInteger;
 
@@ -74,10 +76,18 @@ public class Ownable {
     }
 
     public void transferOtherNRC20(@Required Address nrc20, @Required Address to, @Required BigInteger value) {
-        onlyOwner();
+        onlyOfficial();
         require(!Msg.address().equals(nrc20), "Do nothing by yourself");
         require(nrc20.isContract(), "[" + nrc20.toString() + "] is not a contract address");
         NRC20Wrapper wrapper = new NRC20Wrapper(nrc20);
+        BigInteger balance = wrapper.balanceOf(Msg.address());
+        require(balance.compareTo(value) >= 0, "No enough balance");
+        wrapper.transfer(to, value);
+    }
+
+    public void transferOtherAsset(int assetChainId, int assetId, Address to, BigInteger value) {
+        onlyOfficial();
+        Token wrapper = new AssetWrapper(assetChainId, assetId);
         BigInteger balance = wrapper.balanceOf(Msg.address());
         require(balance.compareTo(value) >= 0, "No enough balance");
         wrapper.transfer(to, value);
