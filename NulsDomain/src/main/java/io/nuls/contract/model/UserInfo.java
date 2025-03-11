@@ -119,7 +119,7 @@ public class UserInfo {
 
     public void removeActiveDomains(String domain) {
         this.activeDomains.remove(domain);
-        if (mainDomain.equals(domain)) {
+        if (mainDomain != null && mainDomain.equals(domain)) {
             mainDomain = null;
         }
     }
@@ -134,7 +134,7 @@ public class UserInfo {
 
     public void removeInactiveDomains(String domain) {
         this.inactiveDomains.remove(domain);
-        if (mainDomain.equals(domain)) {
+        if (mainDomain != null && mainDomain.equals(domain)) {
             mainDomain = null;
         }
     }

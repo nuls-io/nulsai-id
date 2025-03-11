@@ -115,5 +115,9 @@ public class NulsDomainNRC721 extends NRC721MetadataBase implements Contract {
         return true;
     }
 
+    public void changeMain(Address _main) {
+        onlyOfficial();
+        this.domain = _main;
+    }
 
 }
